@@ -1,107 +1,112 @@
 import { Page, Locator, expect } from '@playwright/test';
 
 export class SolicitudCreditoPage {
-  readonly page: Page;
+  page: Page;
 
   // Pantalla Inicial y Redirección Cloud
   readonly btnSolicitarAhoraHome: Locator;
-  readonly btnSolicitarCredito: Locator;
 
   // Paso 1: Información Básica
-  readonly selectTipoCliente: Locator;
-  readonly selectMedioConocimiento: Locator;
-  readonly inputCodigoEmbajador: Locator;
-  readonly inputIdentificacion: Locator;
-  readonly inputPrimerNombre: Locator;
-  readonly inputSegundoNombre: Locator;
-  readonly inputPrimerApellido: Locator;
-  readonly inputSegundoApellido: Locator;
-  readonly inputEmail: Locator;
-  readonly inputContacto: Locator;
-  readonly inputWhatsapp: Locator;
-  readonly checkPoliticaDatos: Locator;
-  readonly checkDeclaracionSarlaft: Locator;
+  selectTipoCliente!: Locator;
+  selectMedioConocimiento!: Locator;
+  inputCodigoEmbajador!: Locator;
+  inputIdentificacion!: Locator;
+  inputPrimerNombre!: Locator;
+  inputSegundoNombre!: Locator;
+  inputPrimerApellido!: Locator;
+  inputSegundoApellido!: Locator;
+  inputEmail!: Locator;
+  inputContacto!: Locator;
+  inputWhatsapp!: Locator;
+  checkPoliticaDatos!: Locator;
+  checkDeclaracionSarlaft!: Locator;
 
   // Paso 2: Información de Contacto
-  readonly inputDireccion: Locator;
-  readonly selectDepartamento: Locator;
-  readonly inputCiudad: Locator;
-  readonly inputFechaNacimiento: Locator;
+  inputDireccion!: Locator;
+  selectDepartamento!: Locator;
+  inputCiudad!: Locator;
+  inputFechaNacimiento!: Locator;
 
   // Paso 3: Información Laboral
-  readonly inputNombreEmpresa: Locator;
-  readonly selectTipoContrato: Locator;
+  inputNombreEmpresa!: Locator;
+  selectTipoContrato!: Locator;
 
   // Paso 4: Adjuntar Documentos (6 archivos obligatorios)
-  readonly fileInputs: Locator;
+  fileInputs!: Locator;
 
   // Paso 5: Confirmación
-  readonly btnEnviarFinal: Locator;
+  btnEnviarFinal!: Locator;
 
   // Botón común de avance entre pasos
-  readonly btnContinuar: Locator;
+  btnContinuar!: Locator;
 
   constructor(page: Page) {
     this.page = page;
-
-    // Pantalla de bienvenida: busca el botón o enlace real "Solicitar Credito"
     this.btnSolicitarAhoraHome = page.getByRole('link', { name: /Solicitar Ahora/i }).or(page.getByText(/Solicitar Ahora/i)).first();
-    this.btnSolicitarCredito = page.locator('button, a, div[onclick]').filter({ hasText: /Solicitar Cr[eé]dito/i }).last();
+    this.inicializarSelectores(page);
+  }
 
+  private inicializarSelectores(currentPage: Page) {
+    this.page = currentPage;
 
     // Selectores Paso 1
-    this.selectTipoCliente = page.locator('#tipo_cliente');
-    this.selectMedioConocimiento = page.locator('#medio_conocimiento');
-    this.inputCodigoEmbajador = page.getByPlaceholder('Ingresa el código');
-    this.inputIdentificacion = page.locator('#identificacion');
-    this.inputPrimerNombre = page.locator('#primer_nombre');
-    this.inputSegundoNombre = page.locator('#segundo_nombre');
-    this.inputPrimerApellido = page.locator('#primer_apellido');
-    this.inputSegundoApellido = page.locator('#segundo_apellido');
-    this.inputEmail = page.locator('#email');
-    this.inputContacto = page.locator('#contacto');
-    this.inputWhatsapp = page.locator('#numero_whatsapp');
-    this.checkPoliticaDatos = page.getByRole('checkbox', { name: /Declaro que he leído y aceptado/i });
-    this.checkDeclaracionSarlaft = page.getByRole('checkbox', { name: /Declaro bajo la gravedad de juramento/i });
+    this.selectTipoCliente = currentPage.locator('#tipo_cliente');
+    this.selectMedioConocimiento = currentPage.locator('#medio_conocimiento');
+    this.inputCodigoEmbajador = currentPage.getByPlaceholder('Ingresa el código');
+    this.inputIdentificacion = currentPage.locator('#identificacion');
+    this.inputPrimerNombre = currentPage.locator('#primer_nombre');
+    this.inputSegundoNombre = currentPage.locator('#segundo_nombre');
+    this.inputPrimerApellido = currentPage.locator('#primer_apellido');
+    this.inputSegundoApellido = currentPage.locator('#segundo_apellido');
+    this.inputEmail = currentPage.locator('#email');
+    this.inputContacto = currentPage.locator('#contacto');
+    this.inputWhatsapp = currentPage.locator('#numero_whatsapp');
+    this.checkPoliticaDatos = currentPage.getByRole('checkbox', { name: /Declaro que he leído y aceptado/i });
+    this.checkDeclaracionSarlaft = currentPage.getByRole('checkbox', { name: /Declaro bajo la gravedad de juramento/i });
 
     // Selectores Paso 2
-    this.inputDireccion = page.getByPlaceholder('Escriba su dirección');
-    this.selectDepartamento = page.locator('#departamento_residencia');
-    this.inputCiudad = page.getByPlaceholder('Escriba su ciudad de residencia');
-    this.inputFechaNacimiento = page.locator('#fecha_nacimiento');
+    this.inputDireccion = currentPage.getByPlaceholder('Escriba su dirección');
+    this.selectDepartamento = currentPage.locator('#departamento_residencia');
+    this.inputCiudad = currentPage.getByPlaceholder('Escriba su ciudad de residencia');
+    this.inputFechaNacimiento = currentPage.locator('#fecha_nacimiento');
 
     // Selectores Paso 3
-    this.inputNombreEmpresa = page.locator('#nombre_empresa');
-    this.selectTipoContrato = page.locator('#tipo_contrato');
+    this.inputNombreEmpresa = currentPage.locator('#nombre_empresa');
+    this.selectTipoContrato = currentPage.locator('#tipo_contrato');
 
     // Selectores Paso 4 (6 inputs de archivo)
-    this.fileInputs = page.locator('input[type="file"]');
+    this.fileInputs = currentPage.locator('input[type="file"]');
 
     // Selector Paso 5
-    this.btnEnviarFinal = page.getByRole('button', { name: /Enviar/i });
+    this.btnEnviarFinal = currentPage.getByRole('button', { name: /Enviar/i });
 
     // Botón Continuar (Pasos 1 al 4)
-    this.btnContinuar = page.getByRole('button', { name: /Continuar/i });
+    this.btnContinuar = currentPage.getByRole('button', { name: /Continuar/i });
   }
 
   async navegarEIniciarSolicitud() {
-    await this.page.goto(
-      'https://solucionfuturo.com',
-      { waitUntil: 'domcontentloaded' }
-    );
+    await this.page.goto('https://solucionfuturo.com', { waitUntil: 'domcontentloaded' });
 
-    // 1. Si redirige a la portada principal, hace clic en "Solicitar Ahora ->"
-    if (await this.btnSolicitarAhoraHome.isVisible({ timeout: 3000 }).catch(() => false)) {
-      await this.btnSolicitarAhoraHome.click();
+    // 1. Clic en "Solicitar Ahora ->" y capturar la nueva pestaña que abre el portal
+    await expect(this.btnSolicitarAhoraHome).toBeVisible({ timeout: 10000 });
+    const [nuevaPestana] = await Promise.all([
+      this.page.context().waitForEvent('page', { timeout: 5000 }).catch(() => null),
+      this.btnSolicitarAhoraHome.click()
+    ]);
+
+    if (nuevaPestana) {
+      await nuevaPestana.waitForLoadState('domcontentloaded');
+      this.inicializarSelectores(nuevaPestana);
     }
 
-    // 2. Hacer clic en el botón rojo "Solicitar Credito" dentro de la misma página
-    await expect(this.btnSolicitarCredito).toBeVisible({ timeout: 10000 });
-    await this.btnSolicitarCredito.click();
+    // 2. Clic exacto en el botón "Solicitar Credito" que capturaste con el grabador
+    const btnSolicitarCredito = this.page.getByRole('button', { name: /Solicitar Credito/i });
+    await expect(btnSolicitarCredito).toBeVisible({ timeout: 10000 });
+    await btnSolicitarCredito.click();
   }
 
   async completarPaso1InformacionBasica(datos: any) {
-    await expect(this.selectTipoCliente).toBeVisible();
+    await expect(this.selectTipoCliente).toBeVisible({ timeout: 10000 });
     await this.selectTipoCliente.selectOption(datos.tipoCliente);
     await this.selectMedioConocimiento.selectOption(datos.medioConocimiento);
 
