@@ -3,6 +3,15 @@ on:
   push:
     branches: [ main ]
   workflow_dispatch:
+    inputs:
+      modo_ejecucion:
+        description: 'Selecciona el perfil de ejecución'
+        required: true
+        default: 'regresion_rapida'
+        type: choice
+        options:
+          - regresion_rapida
+          - certificacion_con_evidencia
 
 jobs:
   test:
@@ -18,10 +27,14 @@ jobs:
     - name: Instalar navegadores Playwright
       run: npx playwright install --with-deps chromium
     - name: Ejecutar pruebas de Solfu
+      env:
+        MODO_CERTIFICACION: ${{ github.event.inputs.modo_ejecucion == 'certificacion_con_evidencia' }}
       run: npx playwright test
     - uses: actions/upload-artifact@v4
       if: ${{ !cancelled() }}
       with:
-        name: reporte-playwright-solfu
-        path: playwright-report/
+        name: reporte-playwright-${{ github.event.inputs.modo_ejecucion || 'regresion_rapida' }}
+        path: |
+          playwright-report/
+          test-results/
         retention-days: 30
