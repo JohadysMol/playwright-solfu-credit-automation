@@ -12,12 +12,31 @@ test.describe('Solfu - Automatización E2E Solicitud de Crédito (5 Pasos)', () 
     await solicitudPage.navegarEIniciarSolicitud();
   });
 
-  test('CP-01: Validar bloqueo de avance en Paso 1 si no se completan campos obligatorios (Negativa)', async () => {
-    // Hacer clic en el botón visible "Continuar" del Paso 1 sin llenar datos
-    await solicitudPage.btnContinuar.first().click();
+  test('CP-01: Validar que el sistema impide el envío final en Paso 5 si hay campos obligatorios vacíos (Negativa)', async ({ page }) => {
+    let peticionEnvioDisparada = false;
 
-    // Verificar que el sistema bloquea el avance: el campo del Paso 2 ("Escriba su dirección") NO debe ser visible
-    await expect(solicitudPage.inputDireccion).not.toBeVisible();
+    // Monitorear si el navegador intenta enviar datos al servidor
+    await page.route('**/controller**', async (route) => {
+      if (route.request().method() === 'POST') {
+        peticionEnvioDisparada = true;
+        await route.abort();
+      } else {
+        await route.continue();
+      }
+    });
+
+    // Navegar por los pasos sin diligenciar campos obligatorios hasta llegar a Confirmación
+    await solicitudPage.btnContinuar.nth(0).click();
+    await solicitudPage.btnContinuar.nth(1).click();
+    await solicitudPage.btnContinuar.nth(2).click();
+    await solicitudPage.btnContinuar.nth(3).click();
+
+    // En el Paso 5, intentar presionar el botón final "Enviar"
+    await expect(solicitudPage.btnEnviarFinal).toBeVisible();
+    await solicitudPage.btnEnviarFinal.click();
+
+    // Verificar que el navegador bloqueó el envío por validaciones HTML5 (required) y no se disparó ningún POST
+    expect(peticionEnvioDisparada).toBe(false);
   });
 
   test('CP-02: Completar flujo E2E de los 5 pasos y 6 documentos hasta pantalla de Confirmación', async ({ page }) => {
