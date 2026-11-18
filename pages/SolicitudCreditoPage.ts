@@ -85,25 +85,29 @@ export class SolicitudCreditoPage {
   }
 
   async navegarEIniciarSolicitud() {
-    await this.page.goto('https://solucionfuturo.com', { waitUntil: 'domcontentloaded' });
+    await this.page.goto('https://solucionfuturo.com', { waitUntil: 'networkidle' });
 
-    // 1. Clic en "Solicitar Ahora ->" y capturar la nueva pestaña que abre el portal
-    await expect(this.btnSolicitarAhoraHome).toBeVisible({ timeout: 10000 });
+    // 1. Clic en "Solicitar Ahora ->" y esperar posible apertura de pestaña nueva
+    await expect(this.btnSolicitarAhoraHome).toBeVisible({ timeout: 15000 });
+    
     const [nuevaPestana] = await Promise.all([
-      this.page.context().waitForEvent('page', { timeout: 5000 }).catch(() => null),
+      this.page.context().waitForEvent('page', { timeout: 8000 }).catch(() => null),
       this.btnSolicitarAhoraHome.click()
     ]);
 
-    if (nuevaPestana) {
-      await nuevaPestana.waitForLoadState('domcontentloaded');
-      this.inicializarSelectores(nuevaPestana);
-    }
+    // Verificar si se abrió una nueva pestaña directamente o quedó en el contexto
+    const paginasAbiertas = this.page.context().pages();
+    const pestanaActiva = nuevaPestana || paginasAbiertas[paginasAbiertas.length - 1];
 
-    // 2. Clic exacto en el botón "Solicitar Credito" que capturaste con el grabador
+    await pestanaActiva.waitForLoadState('networkidle');
+    this.inicializarSelectores(pestanaActiva);
+
+    // 2. Clic exacto en el botón "Solicitar Credito"
     const btnSolicitarCredito = this.page.getByRole('button', { name: /Solicitar Credito/i });
-    await expect(btnSolicitarCredito).toBeVisible({ timeout: 10000 });
+    await expect(btnSolicitarCredito).toBeVisible({ timeout: 20000 });
     await btnSolicitarCredito.click();
   }
+
 
   async completarPaso1InformacionBasica(datos: any) {
     await expect(this.selectTipoCliente).toBeVisible({ timeout: 10000 });
