@@ -12,11 +12,11 @@ test.describe('Solfu - Automatización E2E Solicitud de Crédito (5 Pasos)', () 
     await solicitudPage.navegarEIniciarSolicitud();
   });
 
-  test('CP-01: Validar que el sistema impide el envío final en Paso 5 si hay campos obligatorios vacíos (Negativa)', async ({ page }) => {
+  test('CP-01: Validar que el sistema impide el envío final en Paso 5 si hay campos obligatorios vacíos (Negativa)', async () => {
     let peticionEnvioDisparada = false;
 
-    // Monitorear si el navegador intenta enviar datos al servidor
-    await page.route('**/controller**', async (route) => {
+    // Monitorear en la pestaña activa del formulario si intenta enviar datos al servidor
+    await solicitudPage.page.route('**/controller**', async (route) => {
       if (route.request().method() === 'POST') {
         peticionEnvioDisparada = true;
         await route.abort();
@@ -25,24 +25,23 @@ test.describe('Solfu - Automatización E2E Solicitud de Crédito (5 Pasos)', () 
       }
     });
 
-    // Avanzar por los 4 pasos haciendo clic en el botón "Continuar" visible en cada pantalla
-    const btnContinuarVisible = page.locator('button:visible', { hasText: /Continuar/i }).first();
-    
+    // Navegar por los 4 pasos sin diligenciar datos usando el mismo localizador que funciona en CP-02
     for (let paso = 1; paso <= 4; paso++) {
-      await btnContinuarVisible.click();
+      await solicitudPage.btnContinuar.first().click();
+      await solicitudPage.page.waitForTimeout(500);
     }
 
     // En el Paso 5, intentar presionar el botón final "Enviar"
     await expect(solicitudPage.btnEnviarFinal).toBeVisible();
     await solicitudPage.btnEnviarFinal.click();
 
-    // Verificar que el navegador bloqueó el envío por validaciones HTML5 (required) y no se disparó ningún POST
+    // Verificar que el navegador bloqueó el envío por validaciones HTML5 y no se disparó ningún POST
     expect(peticionEnvioDisparada).toBe(false);
   });
 
-  test('CP-02: Completar flujo E2E de los 5 pasos y 6 documentos hasta pantalla de Confirmación', async ({ page }) => {
-    // Bloquear cualquier petición POST de envío final por seguridad en producción
-    await page.route('**/controller**', async (route) => {
+  test('CP-02: Completar flujo E2E de los 5 pasos y 6 documentos hasta pantalla de Confirmación', async () => {
+    // Bloquear cualquier petición POST de envío final en la pestaña activa
+    await solicitudPage.page.route('**/controller**', async (route) => {
       if (route.request().method() === 'POST') {
         await route.fulfill({
           status: 200,
