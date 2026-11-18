@@ -25,11 +25,12 @@ test.describe('Solfu - Automatización E2E Solicitud de Crédito (5 Pasos)', () 
       }
     });
 
-    // Navegar por los pasos sin diligenciar campos obligatorios hasta llegar a Confirmación
-    await solicitudPage.btnContinuar.nth(0).click();
-    await solicitudPage.btnContinuar.nth(1).click();
-    await solicitudPage.btnContinuar.nth(2).click();
-    await solicitudPage.btnContinuar.nth(3).click();
+    // Avanzar por los 4 pasos haciendo clic en el botón "Continuar" visible en cada pantalla
+    const btnContinuarVisible = page.locator('button:visible', { hasText: /Continuar/i }).first();
+    
+    for (let paso = 1; paso <= 4; paso++) {
+      await btnContinuarVisible.click();
+    }
 
     // En el Paso 5, intentar presionar el botón final "Enviar"
     await expect(solicitudPage.btnEnviarFinal).toBeVisible();
