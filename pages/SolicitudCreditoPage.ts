@@ -44,9 +44,10 @@ export class SolicitudCreditoPage {
   constructor(page: Page) {
     this.page = page;
 
-    // Pantalla de bienvenida (Maneja redirección desde servidores en la nube)
+    // Pantalla de bienvenida: busca el botón o enlace real "Solicitar Credito"
     this.btnSolicitarAhoraHome = page.getByRole('link', { name: /Solicitar Ahora/i }).or(page.getByText(/Solicitar Ahora/i)).first();
-    this.btnSolicitarCredito = page.getByText('Solicitar Credito', { exact: false });
+    this.btnSolicitarCredito = page.locator('button, a, div[onclick]').filter({ hasText: /Solicitar Cr[eé]dito/i }).last();
+
 
     // Selectores Paso 1
     this.selectTipoCliente = page.locator('#tipo_cliente');
@@ -86,16 +87,16 @@ export class SolicitudCreditoPage {
   async navegarEIniciarSolicitud() {
     await this.page.goto(
       'https://solucionfuturo.com',
-      { waitUntil: 'networkidle' }
+      { waitUntil: 'domcontentloaded' }
     );
 
-    // 1. Si GitHub Actions es redirigido a la portada principal, hace clic en "Solicitar Ahora ->"
-    if (await this.btnSolicitarAhoraHome.isVisible()) {
+    // 1. Si redirige a la portada principal, hace clic en "Solicitar Ahora ->"
+    if (await this.btnSolicitarAhoraHome.isVisible({ timeout: 3000 }).catch(() => false)) {
       await this.btnSolicitarAhoraHome.click();
     }
 
-    // 2. En la pantalla de opciones, hace clic en "Solicitar Credito"
-    await expect(this.btnSolicitarCredito).toBeVisible();
+    // 2. Hacer clic en el botón rojo "Solicitar Credito" dentro de la misma página
+    await expect(this.btnSolicitarCredito).toBeVisible({ timeout: 10000 });
     await this.btnSolicitarCredito.click();
   }
 
