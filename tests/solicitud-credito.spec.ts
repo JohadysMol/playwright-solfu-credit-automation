@@ -13,9 +13,11 @@ test.describe('Solfu - Automatización E2E Solicitud de Crédito (5 Pasos)', () 
   });
 
   test('CP-01: Validar bloqueo de avance en Paso 1 si no se completan campos obligatorios (Negativa)', async () => {
-    await solicitudPage.btnContinuar.click();
-    // Verificar que no avanza al Paso 2 y el campo tipo de cliente sigue visible
-    await expect(solicitudPage.selectTipoCliente).toBeVisible();
+    // Hacer clic en el botón visible "Continuar" del Paso 1 sin llenar datos
+    await solicitudPage.btnContinuar.first().click();
+
+    // Verificar que el sistema bloquea el avance: el campo del Paso 2 ("Escriba su dirección") NO debe ser visible
+    await expect(solicitudPage.inputDireccion).not.toBeVisible();
   });
 
   test('CP-02: Completar flujo E2E de los 5 pasos y 6 documentos hasta pantalla de Confirmación', async ({ page }) => {
