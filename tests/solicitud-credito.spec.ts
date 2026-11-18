@@ -3,7 +3,7 @@ import path from 'path';
 import { SolicitudCreditoPage } from '../pages/SolicitudCreditoPage';
 import { SOLICITANTES_TEST_DATA } from '../data/solicitantes.data';
 
-test.describe('Solfu - Automatización E2E Solicitud de Crédito (5 Pasos)', () => {
+test.describe('Solfu - Suite Completa QA Senior (Humo, Funcional, Negativas y Valores Límite)', () => {
   let solicitudPage: SolicitudCreditoPage;
   const archivoPdfPrueba = path.join(__dirname, '../fixtures/documento-prueba.pdf');
 
@@ -12,35 +12,17 @@ test.describe('Solfu - Automatización E2E Solicitud de Crédito (5 Pasos)', () 
     await solicitudPage.navegarEIniciarSolicitud();
   });
 
-  test('CP-01: Validar que el sistema impide el envío final en Paso 5 si hay campos obligatorios vacíos (Negativa)', async () => {
-    let peticionEnvioDisparada = false;
-
-    // Monitorear en la pestaña activa del formulario si intenta enviar datos al servidor
-    await solicitudPage.page.route('**/controller**', async (route) => {
-      if (route.request().method() === 'POST') {
-        peticionEnvioDisparada = true;
-        await route.abort();
-      } else {
-        await route.continue();
-      }
-    });
-
-    // Navegar por los 4 pasos sin diligenciar datos usando el mismo localizador que funciona en CP-02
-    for (let paso = 1; paso <= 4; paso++) {
-      await solicitudPage.btnContinuar.first().click();
-      await solicitudPage.page.waitForTimeout(500);
-    }
-
-    // En el Paso 5, intentar presionar el botón final "Enviar"
-    await expect(solicitudPage.btnEnviarFinal).toBeVisible();
-    await solicitudPage.btnEnviarFinal.click();
-
-    // Verificar que el navegador bloqueó el envío por validaciones HTML5 y no se disparó ningún POST
-    expect(peticionEnvioDisparada).toBe(false);
+  // 1. PRUEBA DE HUMO (SMOKE TESTING)
+  test('CP-01 [@smoke]: Verificar disponibilidad del portal, renderizado del Paso 1 y regla de edad máxima', async () => {
+    await expect(solicitudPage.selectTipoCliente).toBeVisible();
+    await expect(solicitudPage.inputIdentificacion).toBeVisible();
+    
+    const maxFecha = await solicitudPage.inputFechaNacimiento.getAttribute('max');
+    expect(maxFecha).not.toBeNull();
   });
 
-  test('CP-02: Completar flujo E2E de los 5 pasos y 6 documentos hasta pantalla de Confirmación', async () => {
-    // Bloquear cualquier petición POST de envío final en la pestaña activa
+  // 2. PRUEBA FUNCIONAL / FLUJO FELIZ (HAPPY PATH) CON CONVENIO LIBRANZA
+  test('CP-02 [@functional]: Completar flujo E2E de 5 pasos con empresa de convenio libranza y 6 documentos', async () => {
     await solicitudPage.page.route('**/controller**', async (route) => {
       if (route.request().method() === 'POST') {
         await route.fulfill({
@@ -59,4 +41,88 @@ test.describe('Solfu - Automatización E2E Solicitud de Crédito (5 Pasos)', () 
     await solicitudPage.completarPaso4Documentos(archivoPdfPrueba);
     await solicitudPage.validarLlegadaAPaso5Confirmacion();
   });
+
+  // 3. ANÁLISIS DE VALORES LÍMITE (BVA) + EMPRESA SIN CONVENIO + CAMPO CONDICIONAL "OTRA, CUAL?"
+  test('CP-03 [@functional @boundary]: Validar edad límite (18 años exactos), empresa libre sin convenio y "Otro medio"', async () => {
+    await solicitudPage.completarPaso1InformacionBasica(SOLICITANTES_TEST_DATA.clienteValorLimite18Anos);
+    await solicitudPage.completarPaso2Contacto(SOLICITANTES_TEST_DATA.clienteValorLimite18Anos);
+    await solicitudPage.completarPaso3Laboral(SOLICITANTES_TEST_DATA.clienteValorLimite18Anos);
+    await solicitudPage.completarPaso4Documentos(archivoPdfPrueba);
+    await solicitudPage.validarLlegadaAPaso5Confirmacion();
+  });
+
+  // 4. REGLAS CONDICIONALES DE INTERFAZ PARA ROL "CODEUDOR"
+  test('CP-04 [@functional]: Validar que rol "CODEUDOR" habilita búsqueda de solicitante y oculta código de embajador', async () => {
+    // Verificar primero que en rol SOLICITANTE el código de embajador sí es visible
+    await solicitudPage.selectTipoCliente.selectOption('SOLICITANTE');
+    await expect(solicitudPage.inputCodigoEmbajador).toBeVisible();
+
+    // Cambiar a CODEUDOR y confirmar que se habilita búsqueda de solicitante y se oculta código de embajador
+    await solicitudPage.selectTipoCliente.selectOption('CODEUDOR');
+    await expect(solicitudPage.btnBuscarSolicitudCodeudor).toBeVisible();
+    await expect(solicitudPage.inputCodigoEmbajador).not.toBeVisible();
+  });
+
+  // 5. PRUEBA NEGATIVA DE CUMPLIMIENTO LEGAL (SARLAFT / HABEAS DATA)
+  test('CP-05 [@negative]: Bloquear envío final si no se marca la declaración SARLAFT ni Habeas Data', async () => {
+    let peticionEnvioDisparada = false;
+
+    await solicitudPage.page.route('**/controller**', async (route) => {
+      if (route.request().method() === 'POST') {
+        peticionEnvioDisparada = true;
+        await route.abort();
+      } else {
+        await route.continue();
+      }
+    });
+
+    const datos = SOLICITANTES_TEST_DATA.clienteValido;
+    await solicitudPage.selectTipoCliente.selectOption(datos.tipoCliente);
+    await solicitudPage.selectMedioConocimiento.selectOption(datos.medioConocimiento);
+    await solicitudPage.page.getByText(datos.tipoDocumento, { exact: false }).click();
+    await solicitudPage.inputIdentificacion.fill(datos.identificacion);
+    await solicitudPage.inputPrimerNombre.fill(datos.primerNombre);
+    await solicitudPage.inputPrimerApellido.fill(datos.primerApellido);
+    await solicitudPage.inputEmail.fill(datos.email);
+    await solicitudPage.inputContacto.fill(datos.contacto);
+    await solicitudPage.inputWhatsapp.fill(datos.whatsapp);
+    // Se omiten intencionalmente ambos checkboxes legales
+    await solicitudPage.btnContinuar.first().click();
+
+    await solicitudPage.completarPaso2Contacto(datos);
+    await solicitudPage.completarPaso3Laboral(datos);
+    await solicitudPage.completarPaso4Documentos(archivoPdfPrueba);
+
+    await solicitudPage.btnEnviarFinal.click();
+    expect(peticionEnvioDisparada).toBe(false);
+  });
+
+  // 6. PRUEBAS PARAMETRIZADAS: PARTICIÓN DE EQUIVALENCIA (DATA-DRIVEN)
+  for (const escenario of SOLICITANTES_TEST_DATA.casosInvalidos) {
+    test(`CP-06 [@negative]: Bloquear envío ante -> ${escenario.nombreCaso}`, async () => {
+      let peticionEnvioDisparada = false;
+
+      await solicitudPage.page.route('**/controller**', async (route) => {
+        if (route.request().method() === 'POST') {
+          peticionEnvioDisparada = true;
+          await route.abort();
+        } else {
+          await route.continue();
+        }
+      });
+
+      const datosPrueba = {
+        ...SOLICITANTES_TEST_DATA.clienteValido,
+        [escenario.campoAlterado]: escenario.valorInvalido
+      };
+
+      await solicitudPage.completarPaso1InformacionBasica(datosPrueba);
+      await solicitudPage.completarPaso2Contacto(datosPrueba);
+      await solicitudPage.completarPaso3Laboral(datosPrueba);
+      await solicitudPage.completarPaso4Documentos(archivoPdfPrueba);
+
+      await solicitudPage.btnEnviarFinal.click();
+      expect(peticionEnvioDisparada).toBe(false);
+    });
+  }
 });
