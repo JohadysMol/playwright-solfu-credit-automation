@@ -9,6 +9,9 @@ export class SolicitudCreditoPage {
   // Paso 1: Información Básica
   selectTipoCliente!: Locator;
   selectMedioConocimiento!: Locator;
+  inputOtroMedio!: Locator;
+  inputCedulaSolicitanteCodeudor!: Locator;
+  btnBuscarSolicitudCodeudor!: Locator;
   inputCodigoEmbajador!: Locator;
   inputIdentificacion!: Locator;
   inputPrimerNombre!: Locator;
@@ -27,7 +30,7 @@ export class SolicitudCreditoPage {
   inputCiudad!: Locator;
   inputFechaNacimiento!: Locator;
 
-  // Paso 3: Información Laboral
+  // Paso 3: Información Laboral (Con autocompletado opcional de Convenio Libranza)
   inputNombreEmpresa!: Locator;
   selectTipoContrato!: Locator;
 
@@ -52,6 +55,9 @@ export class SolicitudCreditoPage {
     // Selectores Paso 1
     this.selectTipoCliente = currentPage.locator('#tipo_cliente');
     this.selectMedioConocimiento = currentPage.locator('#medio_conocimiento');
+    this.inputOtroMedio = currentPage.getByRole('textbox', { name: /Especifique cual medio/i });
+    this.inputCedulaSolicitanteCodeudor = currentPage.getByLabel(/Cedula Solicitante/i).or(currentPage.locator('input[id*="cedula_solicitante"]')).first();
+    this.btnBuscarSolicitudCodeudor = currentPage.getByRole('button', { name: /Buscar Solicitud/i });
     this.inputCodigoEmbajador = currentPage.getByPlaceholder('Ingresa el código');
     this.inputIdentificacion = currentPage.locator('#identificacion');
     this.inputPrimerNombre = currentPage.locator('#primer_nombre');
@@ -87,34 +93,37 @@ export class SolicitudCreditoPage {
   async navegarEIniciarSolicitud() {
     await this.page.goto('https://solucionfuturo.com', { waitUntil: 'networkidle' });
 
-    // 1. Clic en "Solicitar Ahora ->" y esperar posible apertura de pestaña nueva
     await expect(this.btnSolicitarAhoraHome).toBeVisible({ timeout: 15000 });
-    
     const [nuevaPestana] = await Promise.all([
       this.page.context().waitForEvent('page', { timeout: 8000 }).catch(() => null),
       this.btnSolicitarAhoraHome.click()
     ]);
 
-    // Verificar si se abrió una nueva pestaña directamente o quedó en el contexto
     const paginasAbiertas = this.page.context().pages();
     const pestanaActiva = nuevaPestana || paginasAbiertas[paginasAbiertas.length - 1];
 
     await pestanaActiva.waitForLoadState('networkidle');
     this.inicializarSelectores(pestanaActiva);
 
-    // 2. Clic exacto en el botón "Solicitar Credito"
     const btnSolicitarCredito = this.page.getByRole('button', { name: /Solicitar Credito/i });
     await expect(btnSolicitarCredito).toBeVisible({ timeout: 20000 });
     await btnSolicitarCredito.click();
   }
-
 
   async completarPaso1InformacionBasica(datos: any) {
     await expect(this.selectTipoCliente).toBeVisible({ timeout: 10000 });
     await this.selectTipoCliente.selectOption(datos.tipoCliente);
     await this.selectMedioConocimiento.selectOption(datos.medioConocimiento);
 
-    if (datos.codigoEmbajador) {
+    // Manejo dinámico: Si elige "Otra, cual?", llenar el campo condicional obligatorio
+    if (datos.medioConocimiento === 'Otra, cual?' && datos.especificarOtroMedio) {
+      await expect(this.inputOtroMedio).toBeVisible();
+      await this.inputOtroMedio.fill(datos.especificarOtroMedio);
+    }
+
+    // Regla de negocio: El código de embajador solo aplica cuando es diferente de CODEUDOR
+    if (datos.tipoCliente !== 'CODEUDOR' && datos.codigoEmbajador) {
+      await expect(this.inputCodigoEmbajador).toBeVisible();
       await this.inputCodigoEmbajador.fill(datos.codigoEmbajador);
     }
 
@@ -122,7 +131,9 @@ export class SolicitudCreditoPage {
 
     await this.inputIdentificacion.fill(datos.identificacion);
     await this.inputPrimerNombre.fill(datos.primerNombre);
-    await this.inputSegundoNombre.fill(datos.segundoNombre);
+    if (datos.segundoNombre) {
+      await this.inputSegundoNombre.fill(datos.segundoNombre);
+    }
     await this.inputPrimerApellido.fill(datos.primerApellido);
     await this.inputSegundoApellido.fill(datos.segundoApellido);
     await this.inputEmail.fill(datos.email);
@@ -131,7 +142,7 @@ export class SolicitudCreditoPage {
 
     await this.checkPoliticaDatos.check();
     await this.checkDeclaracionSarlaft.check();
-    await this.btnContinuar.click();
+    await this.btnContinuar.first().click();
   }
 
   async completarPaso2Contacto(datos: any) {
@@ -140,14 +151,23 @@ export class SolicitudCreditoPage {
     await this.selectDepartamento.selectOption(datos.departamento);
     await this.inputCiudad.fill(datos.ciudad);
     await this.inputFechaNacimiento.fill(datos.fechaNacimiento);
-    await this.btnContinuar.click();
+    await this.btnContinuar.first().click();
   }
 
   async completarPaso3Laboral(datos: any) {
     await expect(this.inputNombreEmpresa).toBeVisible();
-    await this.inputNombreEmpresa.fill(datos.nombreEmpresa);
+    await this.inputNombreEmpresa.fill(datos.busquedaEmpresa);
+
+    // Si tiene una empresa de convenio esperada, la selecciona de la lista; si no, conserva el texto libre
+    if (datos.empresaConvenioExacta) {
+      const opcionConvenio = this.page.getByText(datos.empresaConvenioExacta, { exact: false }).first();
+      if (await opcionConvenio.isVisible({ timeout: 3000 }).catch(() => false)) {
+        await opcionConvenio.click();
+      }
+    }
+
     await this.selectTipoContrato.selectOption(datos.tipoContrato);
-    await this.btnContinuar.click();
+    await this.btnContinuar.first().click();
   }
 
   async completarPaso4Documentos(rutaArchivoPdf: string) {
@@ -156,7 +176,7 @@ export class SolicitudCreditoPage {
     for (let i = 0; i < totalAdjuntos; i++) {
       await this.fileInputs.nth(i).setInputFiles(rutaArchivoPdf);
     }
-    await this.btnContinuar.click();
+    await this.btnContinuar.first().click();
   }
 
   async validarLlegadaAPaso5Confirmacion() {
