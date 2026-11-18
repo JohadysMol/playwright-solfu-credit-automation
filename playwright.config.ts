@@ -1,7 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 
-// Detecta si ejecutamos en modo certificación (con evidencia completa) o modo rápido (solo en fallos)
-const esCertificacion = process.env.MODO_CERTIFICACION === 'true';
+// Lee directamente el perfil seleccionado en el menú desplegable de GitHub Actions
+const esCertificacion = process.env.PERFIL_QA === 'certificacion_con_evidencia';
 
 export default defineConfig({
   testDir: './tests',
