@@ -3,7 +3,8 @@ import { Page, Locator, expect } from '@playwright/test';
 export class SolicitudCreditoPage {
   readonly page: Page;
 
-  // Pantalla Inicial
+  // Pantalla Inicial y Redirección Cloud
+  readonly btnSolicitarAhoraHome: Locator;
   readonly btnSolicitarCredito: Locator;
 
   // Paso 1: Información Básica
@@ -43,7 +44,8 @@ export class SolicitudCreditoPage {
   constructor(page: Page) {
     this.page = page;
 
-    // Pantalla de bienvenida
+    // Pantalla de bienvenida (Maneja redirección desde servidores en la nube)
+    this.btnSolicitarAhoraHome = page.getByRole('link', { name: /Solicitar Ahora/i }).or(page.getByText(/Solicitar Ahora/i)).first();
     this.btnSolicitarCredito = page.getByText('Solicitar Credito', { exact: false });
 
     // Selectores Paso 1
@@ -86,10 +88,15 @@ export class SolicitudCreditoPage {
       'https://solucionfuturo.com',
       { waitUntil: 'networkidle' }
     );
-    // Clic en el botón inicial "Solicitar Credito" si está visible
-    if (await this.btnSolicitarCredito.isVisible()) {
-      await this.btnSolicitarCredito.click();
+
+    // 1. Si GitHub Actions es redirigido a la portada principal, hace clic en "Solicitar Ahora ->"
+    if (await this.btnSolicitarAhoraHome.isVisible()) {
+      await this.btnSolicitarAhoraHome.click();
     }
+
+    // 2. En la pantalla de opciones, hace clic en "Solicitar Credito"
+    await expect(this.btnSolicitarCredito).toBeVisible();
+    await this.btnSolicitarCredito.click();
   }
 
   async completarPaso1InformacionBasica(datos: any) {
@@ -135,7 +142,6 @@ export class SolicitudCreditoPage {
 
   async completarPaso4Documentos(rutaArchivoPdf: string) {
     await expect(this.page.getByText('Adjunta tu cédula (Frente)')).toBeVisible();
-    // Carga automáticamente el PDF de prueba en los 6 campos (Frente, Reverso, Cert. Bancaria, Carta Laboral, Desprendibles 1 y 2)
     const totalAdjuntos = await this.fileInputs.count();
     for (let i = 0; i < totalAdjuntos; i++) {
       await this.fileInputs.nth(i).setInputFiles(rutaArchivoPdf);
