@@ -57,7 +57,7 @@ export class SolicitudCreditoPage {
     this.selectMedioConocimiento = currentPage.locator('#medio_conocimiento');
     this.inputOtroMedio = currentPage.getByRole('textbox', { name: /Especifique cual medio/i });
     this.inputCedulaSolicitanteCodeudor = currentPage.getByLabel(/Cedula Solicitante/i).or(currentPage.locator('input[id*="cedula_solicitante"]')).first();
-    this.btnBuscarSolicitudCodeudor = currentPage.getByText(/Buscar Solicitud/i).last();
+    this.btnBuscarSolicitudCodeudor = currentPage.getByText(/ingresa la cédula del solicitante/i);
     this.inputCodigoEmbajador = currentPage.getByPlaceholder('Ingresa el código');
     this.inputIdentificacion = currentPage.locator('#identificacion');
     this.inputPrimerNombre = currentPage.locator('#primer_nombre');
