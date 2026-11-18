@@ -1,16 +1,22 @@
 export const SOLICITANTES_TEST_DATA = {
   clienteValido: {
-    tipoDocumento: 'Cédula de Ciudadanía',
-    numeroDocumento: '1045789123',
+    tipoCliente: 'SOLICITANTE', // En pantalla muestra: "Soy Solicitante"
+    medioConocimiento: 'Redes Sociales',
+    codigoEmbajador: '', // Opcional: "¿Tienes un código de embajador? (Opcional)"
+    tipoDocumento: 'Cédula de ciudadanía', // También puedes probar 'Cédula de extranjería'
+    identificacion: '1045789123',
     primerNombre: 'Carlos',
+    segundoNombre: 'Andres',
     primerApellido: 'Mendoza',
-    celular: '3001234567',
-    correo: 'qa.automation.test@ejemplo.com',
-    montoSolicitado: '1500000'
-  },
-  datosInvalidos: {
-    documentoCorto: '123',
-    celularInvalido: '111111',
-    correoSinFormato: 'usuario-sin-arroba.com'
+    segundoApellido: 'Ruiz',
+    email: 'qa.automation.solfu@ejemplo.com',
+    contacto: '3001234567',
+    whatsapp: '3001234567',
+    direccion: 'Calle 72 # 45 - 12',
+    departamento: 'Atlántico',
+    ciudad: 'Barranquilla',
+    fechaNacimiento: '1990-05-15',
+    nombreEmpresa: 'Tecnologia y Servicios SAS',
+    tipoContrato: 'Termino Indefinido'
   }
 };
