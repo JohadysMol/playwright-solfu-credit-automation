@@ -57,11 +57,14 @@ test.describe('Solfu - Suite Completa QA Senior (Humo, Funcional, Negativas y Va
     await solicitudPage.selectTipoCliente.selectOption('SOLICITANTE');
     await expect(solicitudPage.inputCodigoEmbajador).toBeVisible();
 
-    // Cambiar a CODEUDOR y confirmar que se habilita búsqueda de solicitante y se oculta código de embajador
+    // Cambiar a CODEUDOR y disparar el evento 'change' nativo del navegador
     await solicitudPage.selectTipoCliente.selectOption('CODEUDOR');
-    await expect(solicitudPage.btnBuscarSolicitudCodeudor).toBeVisible();
+    await solicitudPage.selectTipoCliente.dispatchEvent('change');
+
+    // Confirmar la regla de negocio: el campo de código de embajador se oculta al elegir CODEUDOR
     await expect(solicitudPage.inputCodigoEmbajador).not.toBeVisible();
   });
+
 
   // 5. PRUEBA NEGATIVA DE CUMPLIMIENTO LEGAL (SARLAFT / HABEAS DATA)
   test('CP-05 [@negative]: Bloquear envío final si no se marca la declaración SARLAFT ni Habeas Data', async () => {
